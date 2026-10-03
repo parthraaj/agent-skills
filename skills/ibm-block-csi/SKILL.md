@@ -9,6 +9,38 @@ or diagnosing a failure. Use grep -ril "<keyword>" docs/ when unsure which file 
 Doc samples are templates: replace every placeholder with real values from the user or
 the cluster. Never invent parameter names that do not appear in these docs.
 
+## Which source to use
+Use the right source for each kind of field. If sources disagree, follow the order below.
+
+1. Driver-specific values: ONLY these docs
+   - StorageClass `parameters` (pool, SpaceEfficiency, secret references, fstype, etc.)
+   - Array Secret keys (docs/configuration/creating_secret.md)
+   - VolumeSnapshotClass, VolumeGroupClass and VolumeReplicationClass `parameters`
+   - Allowed values and meaning of any csi.ibm.com field
+   These are free-form or driver-defined. The cluster schema cannot validate them, so
+   never guess them from general Kubernetes knowledge.
+
+2. Structure of csi.ibm.com resources: the live CRD schema
+   - Read the CRD with k8s_get_resource_yaml on resource type
+     customresourcedefinitions, for example hostdefinitions.csi.ibm.com.
+     Its spec.versions[].schema.openAPIV3Schema lists the real field names, types and
+     required fields for the CRD version installed on this cluster.
+   - The schema gives field names and types. The docs give meaning and valid values.
+     Use both.
+   - Installed CRDs: list them with k8s_get_available_api_resources (group csi.ibm.com).
+
+3. Standard Kubernetes fields: general Kubernetes API knowledge
+   - PVC spec (accessModes, resources.requests.storage, storageClassName, volumeMode)
+   - StorageClass top-level fields (reclaimPolicy, volumeBindingMode, allowVolumeExpansion)
+   - Pod volumes and volumeMounts, StatefulSet volumeClaimTemplates
+   - VolumeSnapshot spec (snapshot.storage.k8s.io)
+   These are standard upstream APIs. Still check the docs/ sample for the related
+   resource, because it shows how the driver expects them combined.
+
+4. Current state: always the live cluster
+   - Whether a Secret, StorageClass, PVC or CRD exists, its status, events and logs.
+   - Never assume something exists because a doc mentions it.
+
 ## Where to look
 - Secret for the array: docs/configuration/creating_secret.md (topology: creating_secret_topology_aware.md)
 - StorageClass: docs/configuration/creating_volumestorageclass.md (topology: creating_storageclass_topology_aware.md)
@@ -37,9 +69,10 @@ the cluster. Never invent parameter names that do not appear in these docs.
 - Full table of contents: docs/SUMMARY.md
 
 ## Workflow for create requests
-1. Read the matching doc. 2. Check that prerequisites exist in the cluster (Secret, StorageClass).
-3. Ask for missing values. 4. Show the final manifest. 5. Apply only after the user confirms.
-6. Verify (PVC Bound, pod Running) and report.
+1. Read the matching doc. 2. For csi.ibm.com resources, also read the CRD schema.
+3. Check that prerequisites exist in the cluster (Secret, StorageClass).
+4. Ask for missing values. 5. Show the final manifest. 6. Apply only after the user confirms.
+7. Verify (PVC Bound, pod Running) and report.
 
 ## Workflow for troubleshooting
 1. Read docs/troubleshooting/troubleshooting.md. 2. Gather events, resource status, driver logs.
